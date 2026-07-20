@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  ┌─ WRITE-UP TEMPLATE ─────────────────────────────────────────────┐
+  │ How to reuse this file for each new box:                        │
+  │  1. Copy this file and rename it, e.g. writeups/blackgate.html   │
+  │  2. Fill in the [ bracketed ] bits + each section's content      │
+  │  3. Drop screenshots in an /images folder and swap the           │
+  │     placeholder boxes for <img src="images/your-shot.png">       │
+  │  4. Link it from index.html's write-up cards (href="...")        │
+  └─────────────────────────────────────────────────────────────────┘
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>[ Box Name ] — Write-up · Nacht</title>
+  <meta name="description" content="Penetration test write-up for [ Box Name ] on [ Platform ]." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: '#0a0e12', surface: '#12171d', surface2: '#161c23',
+            line: '#232b34', mute: '#8b97a3', soft: '#b8c2cc',
+            bright: '#e6edf3', accent: '#3fe07f',
+          },
+          fontFamily: {
+            display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+            body: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    html { scroll-behavior: smooth; }
+    body { background-color: #0a0e12; }
+
+    /* Code block */
+    .codeblock { border: 1px solid #232b34; border-radius: 10px; overflow: hidden; background: #0d1319; }
+    .codeblock__bar {
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #232b34; padding: .5rem .9rem;
+      font-family: "JetBrains Mono", monospace; font-size: 11px; color: #8b97a3;
+    }
+    .codeblock pre { margin: 0; padding: 1rem .9rem; overflow-x: auto; }
+    .codeblock code {
+      font-family: "JetBrains Mono", monospace; font-size: 13px; line-height: 1.7; color: #b8c2cc;
+      white-space: pre;
+    }
+    .codeblock .cmd { color: #3fe07f; }
+    .codeblock .out { color: #8b97a3; }
+
+    /* Screenshot placeholder */
+    .shot__box {
+      display: grid; place-items: center; gap: .4rem; text-align: center;
+      min-height: 190px; padding: 1.5rem;
+      border: 1px dashed #2c3a45; border-radius: 10px; background: #10161c;
+      color: #8b97a3;
+    }
+    .shot__box .tag { font-family: "JetBrains Mono", monospace; font-size: 12px; color: #3fe07f; }
+
+    a:focus-visible { outline: 2px solid #3fe07f; outline-offset: 3px; border-radius: 4px; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+
+<body class="bg-ink font-body text-soft antialiased selection:bg-accent/25 selection:text-bright">
+
+  <!-- ─── NAV ─────────────────────────────────────────────── -->
+  <header class="sticky top-0 z-50 border-b border-line/70 bg-ink/80 backdrop-blur">
+    <nav class="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
+      <a href="index.html" class="font-mono text-sm text-bright">
+        <span class="text-accent">nacht</span><span class="text-mute">@sec:~$</span>
+      </a>
+      <a href="index.html#writeups" class="font-mono text-[13px] text-mute transition-colors hover:text-accent">← back to write-ups</a>
+    </nav>
+  </header>
+
+  <article class="mx-auto max-w-3xl px-5 py-14">
+
+    <!-- ─── HEADER ────────────────────────────────────────── -->
+    <p class="font-mono text-[13px] text-accent">$ cat ./writeups/[ box-name ].md</p>
+    <h1 class="mt-3 font-display text-4xl font-bold text-bright sm:text-5xl">[ Box Name ]</h1>
+
+    <div class="mt-5 flex flex-wrap items-center gap-3 font-mono text-[12px]">
+      <span class="rounded bg-surface2 px-2.5 py-1 text-mute">[ Platform: HackSmarter / TryHackMe ]</span>
+      <span class="rounded bg-surface2 px-2.5 py-1 text-mute">difficulty: [ easy / medium / hard ]</span>
+      <span class="rounded bg-surface2 px-2.5 py-1 text-mute">[ Month Year ]</span>
+    </div>
+
+    <!-- ─── OBJECTIVE ─────────────────────────────────────── -->
+    <section class="mt-12">
+      <p class="mb-2 font-mono text-[13px] text-accent">$ ./objective</p>
+      <h2 class="font-display text-2xl font-semibold text-bright">Objective</h2>
+      <p class="mt-4 leading-relaxed text-soft">
+        Briefly state the goal of the engagement — what you were trying to compromise, the scope
+        (single host, web app, AD environment), and the "win" condition (user + root flag, admin
+        access, data exfiltration). Two or three sentences is plenty.
+      </p>
+    </section>
+
+    <!-- ─── TOOLS USED ────────────────────────────────────── -->
+    <section class="mt-12">
+      <p class="mb-2 font-mono text-[13px] text-accent">$ ls ./tools</p>
+      <h2 class="font-display text-2xl font-semibold text-bright">Tools Used</h2>
+      <div class="mt-4 flex flex-wrap gap-2 font-mono text-[12px] text-soft">
+        <span class="rounded border border-line px-2.5 py-1">Nmap</span>
+        <span class="rounded border border-line px-2.5 py-1">Wireshark</span>
+        <span class="rounded border border-line px-2.5 py-1">Metasploit</span>
+        <span class="rounded border border-line px-2.5 py-1">Burp Suite</span>
+        <span class="rounded border border-line px-2.5 py-1">[ add / remove as needed ]</span>
+      </div>
+    </section>
+
+    <!-- ─── METHODOLOGY ───────────────────────────────────── -->
+    <section class="mt-12">
+      <p class="mb-2 font-mono text-[13px] text-accent">$ ./methodology --verbose</p>
+      <h2 class="font-display text-2xl font-semibold text-bright">Methodology</h2>
+
+      <!-- Phase 1 -->
+      <h3 class="mt-8 font-display text-lg font-semibold text-bright">01 · Reconnaissance</h3>
+      <p class="mt-3 leading-relaxed text-soft">
+        What you found on first contact — open ports, services, versions. Walk through the scan and
+        call out anything interesting.
+      </p>
+      <div class="codeblock mt-4">
+        <div class="codeblock__bar"><span>terminal</span><span>nmap</span></div>
+        <pre><code><span class="cmd">$ nmap -sC -sV -oN nmap/initial 10.10.10.10</span>
+<span class="out">PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 8.2p1
+80/tcp   open  http    Apache 2.4.41</span></code></pre>
+      </div>
+      <figure class="mt-5">
+        <div class="shot__box">
+          <span class="tag">▚ screenshot</span>
+          <p>Replace with: the Nmap output / the web app landing page</p>
+        </div>
+        <figcaption class="mt-2 font-mono text-[12px] text-mute">Fig 1 — [ describe the screenshot ]</figcaption>
+      </figure>
+
+      <!-- Phase 2 -->
+      <h3 class="mt-10 font-display text-lg font-semibold text-bright">02 · Enumeration</h3>
+      <p class="mt-3 leading-relaxed text-soft">
+        Digging into the services — directory brute-forcing, banner grabbing, source review, whatever
+        surfaced the foothold. Show the commands and the finding.
+      </p>
+      <div class="codeblock mt-4">
+        <div class="codeblock__bar"><span>terminal</span><span>bash</span></div>
+        <pre><code><span class="cmd">$ [ your enumeration command here ]</span></code></pre>
+      </div>
+
+      <!-- Phase 3 -->
+      <h3 class="mt-10 font-display text-lg font-semibold text-bright">03 · Exploitation</h3>
+      <p class="mt-3 leading-relaxed text-soft">
+        How you got your initial foothold — the vulnerability, the payload, and the shell. This is the
+        core of the write-up; be specific about the "why," not just the "what."
+      </p>
+      <figure class="mt-5">
+        <div class="shot__box">
+          <span class="tag">▚ screenshot</span>
+          <p>Replace with: proof of the foothold (reverse shell, user flag)</p>
+        </div>
+        <figcaption class="mt-2 font-mono text-[12px] text-mute">Fig 2 — [ describe the screenshot ]</figcaption>
+      </figure>
+
+      <!-- Phase 4 -->
+      <h3 class="mt-10 font-display text-lg font-semibold text-bright">04 · Privilege Escalation</h3>
+      <p class="mt-3 leading-relaxed text-soft">
+        The path from low-priv user to root/admin — misconfiguration, SUID binary, credential reuse,
+        kernel exploit, etc. End on the root flag / full compromise.
+      </p>
+      <div class="codeblock mt-4">
+        <div class="codeblock__bar"><span>terminal</span><span>bash</span></div>
+        <pre><code><span class="cmd">$ id</span>
+<span class="out">uid=0(root) gid=0(root) groups=0(root)</span></code></pre>
+      </div>
+    </section>
+
+    <!-- ─── MITIGATION ────────────────────────────────────── -->
+    <section class="mt-12">
+      <p class="mb-2 font-mono text-[13px] text-accent">$ ./mitigation</p>
+      <h2 class="font-display text-2xl font-semibold text-bright">Mitigation</h2>
+      <p class="mt-4 leading-relaxed text-soft">
+        The defender's takeaway — how each weakness you exploited should be fixed. This section is what
+        separates a hobbyist walkthrough from a consultant's report, so give it real weight.
+      </p>
+      <ul class="mt-4 space-y-2 text-soft">
+        <li class="flex gap-3"><span class="mt-1 text-accent">▹</span><span>[ Remediation for the initial-access vulnerability ]</span></li>
+        <li class="flex gap-3"><span class="mt-1 text-accent">▹</span><span>[ Remediation for the privilege-escalation path ]</span></li>
+        <li class="flex gap-3"><span class="mt-1 text-accent">▹</span><span>[ Hardening / detection recommendation ]</span></li>
+      </ul>
+    </section>
+
+    <!-- ─── FOOTER NAV ────────────────────────────────────── -->
+    <div class="mt-16 border-t border-line/60 pt-8">
+      <a href="index.html#writeups" class="font-mono text-[13px] text-accent hover:underline">← back to all write-ups</a>
+      <p class="mt-6 font-mono text-xs text-mute">© <span id="year"></span> Nacht</p>
+    </div>
+
+  </article>
+
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

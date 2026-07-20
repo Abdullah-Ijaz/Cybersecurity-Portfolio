@@ -3,43 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nacht — Cybersecurity Technician</title>
+  <title>Nacht — Cybersecurity Consultant</title>
   <meta name="description" content="Portfolio of Nacht, an entry-level cybersecurity technician focused on penetration testing and security analysis." />
+
+  <!-- Favicon (inline SVG — terminal prompt glyph, no external asset) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2308140d'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='bold' fill='%233fe07f' text-anchor='middle'%3E%3E_%3C/text%3E%3C/svg%3E" />
+
+  <!-- Open Graph / Twitter card (og:url and og:image intentionally omitted — no deployed URL or image asset yet) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Nacht — Cybersecurity Technician" />
+  <meta property="og:description" content="Portfolio of Nacht, an entry-level cybersecurity technician focused on penetration testing and security analysis." />
+  <meta property="og:site_name" content="Nacht — Cybersecurity Portfolio" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Nacht — Cybersecurity Technician" />
+  <meta name="twitter:description" content="Portfolio of Nacht, an entry-level cybersecurity technician focused on penetration testing and security analysis." />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
 
-  <!-- Tailwind (Play CDN — see note in the handoff about compiling for production) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            ink:      '#0a0e12',
-            surface:  '#12171d',
-            surface2: '#161c23',
-            line:     '#232b34',
-            mute:     '#8b97a3',
-            soft:     '#b8c2cc',
-            bright:   '#e6edf3',
-            accent:   '#3fe07f',
-          },
-          fontFamily: {
-            display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
-            body:    ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
-            mono:    ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
-          },
-        },
-      },
-    };
-  </script>
+  <!-- Tailwind: compiled ahead of time via the standalone CLI (see src/input.css) — no runtime CDN/JIT -->
+  <link rel="stylesheet" href="css/styles.css" />
 
   <style>
     html { scroll-behavior: smooth; }
-    body { background-color: #0a0e12; }
+    body { background-color: #08140d; }
 
     /* Faint grid texture on the page background */
     .bg-grid {
@@ -116,13 +105,13 @@
             // entry-level · offensive security
           </p>
           <h1 class="font-display text-5xl font-bold leading-[1.05] text-bright sm:text-6xl">
-            Nacht
+            Abdullah Ijaz
           </h1>
           <p class="mt-4 font-display text-xl font-medium text-soft sm:text-2xl">
-            Cybersecurity Technician
+            Cybersecurity Consultant
           </p>
           <p class="mt-6 max-w-md text-[15px] leading-relaxed text-mute">
-            I break into systems so the right people can fix them first. Focused on
+            Well versed Windows administration and Identity Access Management (IAM), with growing offensive security skills across red team tooling and methodology (OSCP in progress). I break into systems so the right people can fix them first. Focused on
             <span class="text-soft">penetration testing</span> and
             <span class="text-soft">security analysis</span>, with a working background that
             spans finance, emergency medicine, and IT support.
@@ -133,10 +122,10 @@
                class="rounded-md bg-accent px-5 py-2.5 font-mono text-sm font-medium text-ink transition-opacity hover:opacity-90">
               View write-ups
             </a>
-            <a href="#" data-resume
-               class="rounded-md border border-line px-5 py-2.5 font-mono text-sm text-soft transition-colors hover:border-accent/60 hover:text-accent">
-              Download résumé
-            </a>
+            <button type="button" disabled title="Résumé coming soon"
+               class="cursor-not-allowed rounded-md border border-line px-5 py-2.5 font-mono text-sm text-mute opacity-60">
+              Download résumé — coming soon
+            </button>
           </div>
         </div>
 
@@ -180,7 +169,7 @@
               Google IT Support<br />Professional Certificate
             </h3>
             <p class="mt-3 text-sm text-mute">Networking, operating systems, system administration, and security fundamentals.</p>
-            <a href="#" class="mt-5 inline-block font-mono text-[13px] text-accent hover:underline">verify →</a>
+            <a href="https://www.credly.com/badges/f6e9b1af-ed5e-445f-9bd2-0a3489350b95/public_url" target="_blank" rel="noopener noreferrer" class="mt-5 inline-block font-mono text-[13px] text-accent hover:underline">verify →</a>
           </article>
 
           <article class="card-hover rounded-xl border border-line bg-surface p-6">
@@ -192,7 +181,7 @@
               Security Analyst<br />Level 1 — SAL1
             </h3>
             <p class="mt-3 text-sm text-mute">Practical, exam-based validation of core SOC and defensive analysis skills.</p>
-            <a href="#" class="mt-5 inline-block font-mono text-[13px] text-accent hover:underline">verify →</a>
+            <a href="https://www.credly.com/badges/979150f9-05a5-4751-b14f-adcb7ba3f481/public_url" target="_blank" rel="noopener noreferrer" class="mt-5 inline-block font-mono text-[13px] text-accent hover:underline">verify →</a>
           </article>
 
           <article class="card-hover rounded-xl border border-line bg-surface p-6">
@@ -201,10 +190,10 @@
               <span class="rounded border border-accent/30 bg-accent/10 px-2 py-0.5 font-mono text-[11px] text-accent">issued</span>
             </div>
             <h3 class="mt-4 font-display text-lg font-semibold leading-snug text-bright">
-              Security Engineer<br />Level 1 — SEC1
+              Cyber Security 101<br /> SEC1
             </h3>
             <p class="mt-3 text-sm text-mute">Hands-on validation of security engineering and hardening fundamentals.</p>
-            <a href="#" class="mt-5 inline-block font-mono text-[13px] text-accent hover:underline">verify →</a>
+            <a href="https://www.credly.com/badges/3f006680-ee79-40c8-9974-2edebecf793e/public_url" target="_blank" rel="noopener noreferrer" class="mt-5 inline-block font-mono text-[13px] text-accent hover:underline">verify →</a>
           </article>
 
         </div>
@@ -224,30 +213,30 @@
             <li class="relative pb-9">
               <span class="absolute -left-[33px] top-1 grid h-4 w-4 place-items-center rounded-full border border-accent bg-ink"><span class="h-1.5 w-1.5 rounded-full bg-accent"></span></span>
               <p class="font-mono text-xs text-accent">present</p>
-              <h3 class="mt-1 font-display text-lg font-semibold text-bright">Cybersecurity Consultant</h3>
+              <h3 class="mt-1 font-display text-lg font-semibold text-bright">Cybersecurity Consultant | Hamrah Security LLC.</h3>
               <p class="mt-1 text-sm leading-relaxed text-mute">Penetration testing and security assessment work — reconnaissance, exploitation, and clear, prioritized remediation guidance for clients.</p>
             </li>
             <li class="relative pb-9">
               <span class="absolute -left-[33px] top-1 h-4 w-4 rounded-full border border-line bg-ink"></span>
               <p class="font-mono text-xs text-mute">prior</p>
-              <h3 class="mt-1 font-display text-lg font-semibold text-bright">Advanced EMT</h3>
-              <p class="mt-1 text-sm leading-relaxed text-mute">High-pressure emergency response — triage, rapid decision-making, and precise protocol under real stakes. The muscle memory transfers straight to incident work.</p>
+              <h3 class="mt-1 font-display text-lg font-semibold text-bright">Emergency Medical Technician | American Medical Response</h3>
+              <p class="mt-1 text-sm leading-relaxed text-mute"> Responding to Individuals calling 911 due to an Emergency, creative problem solving, and precise protocol follow through under real stakes to save lives. The muscle memory from my years of EMS work transfers straight to incident work.</p>
             </li>
             <li class="relative">
               <span class="absolute -left-[33px] top-1 h-4 w-4 rounded-full border border-line bg-ink"></span>
               <p class="font-mono text-xs text-mute">prior</p>
-              <h3 class="mt-1 font-display text-lg font-semibold text-bright">Banker</h3>
-              <p class="mt-1 text-sm leading-relaxed text-mute">Handling sensitive financial data and customer trust — where discretion, accuracy, and compliance were the whole job.</p>
+              <h3 class="mt-1 font-display text-lg font-semibold text-bright">Private Client Banker | JPMorgan Chase & Co.</h3>
+              <p class="mt-1 text-sm leading-relaxed text-mute">Handling sensitive financial data and customer trust — where discretion, accuracy, and compliance among other things like KYC/AML were the whole job.</p>
             </li>
           </ol>
 
           <!-- Education -->
           <div>
             <p class="mb-2 font-mono text-[13px] text-accent">$ cat ./education.log</p>
-            <h3 class="font-display text-xl font-semibold text-bright">Education</h3>
+            <h3 class="font-display text-xl font-semibold text-bright">University at Buffalo</h3>
             <div class="mt-5 rounded-xl border border-line bg-surface p-6">
               <p class="font-display text-base font-semibold text-bright">B.S. Exercise Science</p>
-              <p class="mt-2 text-sm text-mute">A foundation in physiology, systems, and evidence-based problem solving — retooled toward security.</p>
+              <p class="mt-2 text-sm text-mute">A foundation in physiology, human anatomy systems, and evidence-based problem solving — retooled toward security.</p>
             </div>
           </div>
 
@@ -308,12 +297,12 @@
   <footer id="contact" class="border-t border-line/60 py-14">
     <div class="mx-auto max-w-6xl px-5">
       <p class="font-mono text-[13px] text-accent">$ ./contact --me</p>
-      <h2 class="mt-2 font-display text-2xl font-semibold text-bright">Let's talk security.</h2>
+      <h2 class="mt-2 font-display text-2xl font-semibold text-bright">Let's talk Cybersecurity.</h2>
       <div class="mt-6 flex flex-wrap gap-x-8 gap-y-3 font-mono text-sm">
-        <a href="mailto:you@example.com" class="text-soft transition-colors hover:text-accent">email</a>
-        <a href="#" class="text-soft transition-colors hover:text-accent">github</a>
-        <a href="#" class="text-soft transition-colors hover:text-accent">linkedin</a>
-        <a href="#" class="text-soft transition-colors hover:text-accent">tryhackme</a>
+        <a href="mailto:nacht.totem@proton.me" class="text-soft transition-colors hover:text-accent">email</a>
+        <a href="https://github.com/Abdullah-Ijaz/Cybersecurity-Portfolio" target="_blank" rel="noopener noreferrer" class="text-soft transition-colors hover:text-accent">github</a>
+        <a href="https://www.linkedin.com/in/abdullahijaz" target="_blank" rel="noopener noreferrer" class="text-soft transition-colors hover:text-accent">linkedin</a>
+        <span title="TryHackMe profile link coming soon" class="cursor-not-allowed text-mute opacity-60">tryhackme</span>
       </div>
       <p class="mt-10 font-mono text-xs text-mute">© <span id="year"></span> Nacht · built for the hunt.</p>
     </div>
