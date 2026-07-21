@@ -39,8 +39,7 @@ netexec smb dc01.buildingmagic.local -u r.widdleton -p '‹redacted›'
 * **The Reality:** `t.ren`'s cracked value (`shadowhex7`) **failed** authentication — a stale or rotated password. Only `r.widdleton` validated.
 * **The Lesson:** Always validate credentials against the target before building a plan on them; cracking success ≠ access.
 
-> 📷 **Screenshot slot** — *save as* `images/01-cred-validation.png` — validating `r.widdleton` with netexec.
-
+![Validating the r.widdleton credentials against the domain with netexec](images/01-cred-validation.png)
 ---
 
 ## Phase 2: Enumeration — Mapping the Domain with BloodHound
@@ -58,8 +57,6 @@ I then ingested the resulting JSON into **BloodHound Community Edition**, instal
 
 **Analysis:** `r.widdleton` held no useful rights and no interesting group memberships directly — a dead end on its own. But the graph surfaced a viable path forward: **Kerberoast `r.haggard`**, then use `r.haggard` to **force-reset `h.potch`**.
 
-> 📷 **Screenshot slot** — *save as* `images/02-bloodhound-path.png` — the BloodHound attack-path graph. *(This is the single most valuable image in the lab — the visual attack path is what makes AD work legible.)*
-
 *Risk Analysis Note: BloodHound converts opaque AD relationships into an explicit attack path. It is equally a blue-team tool — defenders who run it on their own domain see the same shortcuts an attacker would.*
 
 ---
@@ -73,8 +70,7 @@ hashcat -m 13100 kerberoast_r.haggard.txt /usr/share/wordlists/rockyou.txt
 
 The service account's weak password cracked successfully, yielding the `r.haggard` credentials. *(Modern hashcat auto-detects the mode, but `-m 13100` is the explicit type for Kerberoast TGS-REP.)*
 
-> 📷 **Screenshot slot** — *save as* `images/03-kerberoast-crack.png` — hashcat cracking the TGS hash.
-
+![Cracking the r.haggard Kerberoast (TGS) hash with hashcat](images/03-kerberoast-crack.png)
 ---
 
 ## Phase 4: ACL Abuse — Forced Password Reset of `h.potch`
@@ -90,8 +86,7 @@ net rpc password "h.potch" "‹new-password›" \
 * **The Confusion:** The command returned **no output** — no success message, no error.
 * **The Verification:** Rather than assume failure, I confirmed by authenticating as `h.potch` with the new password and enumerating shares — access succeeded, proving the reset took. *(I also had to specify the DC by host for `-S`/`-U` rather than the bare domain name.)*
 
-> 📷 **Screenshot slot** — *save as* `images/04-potch-reset-confirm.png` — authenticating as `h.potch` post-reset.
-
+![Authenticating as h.potch after the forced password reset](images/04-potch-reset-confirm.png)
 ---
 
 ## Phase 5: Coerced Authentication — Malicious LNK in a Writable Share
@@ -113,8 +108,7 @@ hashcat -m 5600 grangon_netntlmv2.txt /usr/share/wordlists/rockyou.txt
 # H.GRANGON::BUILDINGMAGIC:‹redacted hash›  →  ‹redacted plaintext›
 ```
 
-> 📷 **Screenshot slot** — *save as* `images/05-netntlm-capture.png` — the captured/cracked `h.grangon` hash.
-
+![Captured and cracked NetNTLMv2 hash for h.grangon](images/05-netntlm-capture.png)
 ---
 
 ## Phase 6: Foothold — Interactive Shell as `h.grangon`
@@ -137,8 +131,7 @@ SeChangeNotifyPrivilege       Bypass traverse checking       Enabled
 SeIncreaseWorkingSetPrivilege Increase a process working set Enabled
 ```
 
-> 📷 **Screenshot slot** — *save as* `images/06-grangon-sebackup.png` — `whoami /priv` showing `SeBackupPrivilege`.
-
+![whoami /priv on h.grangon showing SeBackupPrivilege enabled](images/06-grangon-sebackup.png)
 ---
 
 ## Phase 7: Privilege Escalation — `SeBackupPrivilege` → Credential Dump
@@ -157,8 +150,7 @@ impacket-secretsdump -sam SAM -system SYSTEM LOCAL
 
 This yielded the local **Administrator** NT hash.
 
-> 📷 **Screenshot slot** — *save as* `images/07-secretsdump.png` — secretsdump output (redact the hashes in the image too).
-
+![secretsdump extracting the local Administrator hash from the SAM/SYSTEM hives](images/07-secretsdump.png)
 ---
 
 ## Phase 8: Pass-the-Hash → Pivot to Domain Admin
