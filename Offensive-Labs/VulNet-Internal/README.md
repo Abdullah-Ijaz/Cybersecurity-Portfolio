@@ -1,14 +1,18 @@
-## Executive Summary & Methodology
-In penetration testing, much like in incident response or financial risk management, initial assessments often require rapid course correction. Success relies on remaining analytical, recognizing when a diagnostic approach fails, and pivoting to a new methodology. 
+# VulNet: Internal (TryHackMe)
 
-This report documents the internal enumeration and exploitation of a compromised server, explicitly highlighting the missteps, troubleshooting steps, and critical thinking required to navigate an internal network.
+**Platform:** TryHackMe  **Difficulty:** Medium  **Category:** Internal Network / Lateral Movement
+**Scope:** Internal black-box, network access only, no starting credentials
+**Status:** *In progress; documented through the TeamCity foothold, root pending.*
+
+## Executive Summary & Methodology
+This box is a chain of internal services where no single step is the whole exploit; each failed attempt points at the next one. The path that worked came from abandoning a vector that stalled rather than forcing it: an NFS mount was denied, so I pivoted to SMB, which handed over config files, which led to Redis, which held the credentials for rsync, which put files on the target. I document the missteps and the recovery from each, because on an internal engagement the pivot matters as much as the payload.
 
 ---
 
 ## Phase 1: Initial Enumeration & Troubleshooting
 
 ### The Initial Scan
-The assessment began with a targeted Nmap scan to identify the attack surface.
+I started with a full-port Nmap scan to define the attack surface.
 
 ```bash
 nmap -sV -sC -p- -T4 <Target_IP>
@@ -20,74 +24,74 @@ nmap -sV -sC -p- -T4 <Target_IP>
 * **Port 6379 (Redis):** In-memory data store.
 
 ### Error & Correction 1: The NFS Roadblock
-The initial approach involved mounting the NFS share directly to the root directory.
+My first move was to mount the NFS share directly.
 * **The Action:** `sudo mount -t nfs <IP>:/opt/internal /tmp/mount1 -nolock`
 * **The Error:** `mount.nfs: access denied by server`
-* **The Pivot:** Paused the NFS vector and shifted focus to the SMB service (Port 445) to identify an alternative entry point. Using `smbclient -L //<IP> -N`, the shares were enumerated. Accessing the `shares` directory allowed the extraction of `services.txt` and `business-req.txt`, providing initial situational awareness.
+* **The Pivot:** Rather than force the NFS vector, I shifted to SMB (Port 445) to find another way in. `smbclient -L //<IP> -N` enumerated the shares; the `shares` directory gave up `services.txt` and `business-req.txt`, which provided the initial situational awareness I needed.
 
 ---
 
 ## Phase 2: Re-Assessment & Exploitation
 
 ### Error & Correction 2: Correcting the NFS Target
-Reviewing the initial NFS failure indicated the wrong export path was targeted. The command was corrected to target the specific configuration directory.
+The `services.txt` detail showed my first NFS attempt had targeted the wrong export path. I corrected the command to the specific configuration directory:
 
 ```bash
 sudo mount -t nfs <IP>:/opt/conf /mnt/nfs_exploit -o nolock
 ```
-**Success:** The mount succeeded. 
+**Success:** The mount succeeded.
 
-*Risk Analysis Note: Exposing configuration directories internally is a critical compliance violation (e.g., HIPAA/PCI-DSS). These files frequently contain hardcoded credentials and database paths that facilitate lateral movement.*
+*Risk Analysis Note: Exposing configuration directories over an internal NFS export is a serious compliance problem (HIPAA/PCI-DSS territory). Config files routinely carry hardcoded credentials and database paths, which is exactly the lateral-movement fuel an internal attacker wants.*
 
 ### Extracting Database Credentials
-Navigating the mounted directory, Redis configuration files were targeted. Using grep, the authentication key was isolated:
+In the mounted config directory I went straight for the Redis configuration and pulled the auth key with grep:
 
 ```bash
 grep -i "pass" redis.conf
-# Result: requirepass "B65Hx562F@ggAZ@F"
+# Result: requirepass "<redacted>"
 ```
 
 ---
 
 ## Phase 3: Data Extraction & Syntax Troubleshooting
 
-With the credentials secured, authentication into the internal Redis service on Port 6379 was successful. 
+With the password in hand, I authenticated to the internal Redis service on Port 6379.
 
 ### Error & Correction 3: The "Wrong Type" Error
-Several keys were identified, including `internal flag` and `authlist`. 
-* **The Action:** Attempted to read the list using a standard string command: `get authlist`
+Several keys were present, including `internal flag` and `authlist`.
+* **The Action:** I tried to read the list with a standard string command: `get authlist`
 * **The Error:** `(error) WRONGTYPE Operation against a key holding the wrong kind of value`
-* **The Correction:** Recognizing that `authlist` is a list data structure, the syntax was adjusted:
+* **The Correction:** `authlist` is a Redis list, not a string, so I switched to the list command:
 
 ```bash
 LRANGE authlist 0 -1
 ```
-**Result:** This command successfully dumped four Base64 encoded strings. Decoding these revealed authorization credentials for the Rsync service: `rsync-connect@127.0.0.1` with password `Hcg3HP67@TW@Bc72v`.
+**Result:** This dumped four Base64 strings. Decoding them gave the authorization credentials for the rsync service: `rsync-connect@127.0.0.1` with password `<redacted>`.
 
 ---
 
 ## Phase 4: Current Roadblock & Next Steps (TeamCity Shell)
 
-Armed with the Rsync credentials, the internal system files were downloaded to a local `~/rsync_loot` directory. 
+With the rsync credentials, I pulled the internal system files down to a local `~/rsync_loot` directory.
 
-**The Attack Chain So Far:**
-1. Generated a custom SSH key and uploaded it to the target via Rsync.
-2. Established an SSH tunnel from the local machine to the target server.
-3. Located a superuser authentication token (`2206011471080847658`) in the TeamCity logs.
-4. Successfully authenticated into the TeamCity web portal via the browser using the tunneled connection.
+**The attack chain so far:**
+1. Generated a custom SSH key and uploaded it to the target over rsync.
+2. Opened an SSH tunnel from my machine to the target server.
+3. Found a superuser authentication token in the TeamCity logs.
+4. Authenticated to the TeamCity web portal through the browser over the tunnel.
 
-**Current Status:**
-An attempt was made to establish a reverse shell by injecting a Python payload into TeamCity. However, the local Netcat listener failed to catch the connection. 
+**Current status:**
+I tried to open a reverse shell by injecting a Python payload into TeamCity, but my local Netcat listener never caught the connection.
 
-**Next Diagnostic Steps:**
-* Verify the Python payload syntax against the target's specific Python version.
-* Check if the target firewall is blocking outbound connections on the chosen listening port.
-* Explore alternative payload delivery methods within TeamCity (e.g., executing a bash script instead of a raw Python one-liner).
+**Next diagnostic steps:**
+* Check the Python payload syntax against the target's specific Python version.
+* Confirm whether the target firewall is blocking outbound connections on my listener port.
+* Try a different delivery method inside TeamCity (a bash script rather than a raw Python one-liner).
 
 ---
 
-## Financial & Clinical Risk Impact
-The vulnerabilities exploited in this chain represent a severe failure of internal security protocols. 
-* **Improper Access Control (NFS):** Allowed unauthenticated reading of critical configuration files.
-* **Hardcoded Credentials:** Storing the Redis password in plaintext provided direct access to internal databases.
-* **Business Impact:** In a live environment, an attacker could leverage this internal pivot to access protected records, manipulate financial data, or deploy network-wide ransomware.
+## Business & Operational Risk Impact
+This chain represents a serious failure of internal segmentation and secrets handling.
+* **Improper access control (NFS):** An over-permissive export allowed unauthenticated reading of critical configuration files.
+* **Hardcoded credentials:** The Redis password sat in plaintext in a config file, which opened a direct path to the internal data store and everything downstream of it.
+* **Business impact:** In a live environment, this internal pivot would let an attacker reach protected records, tamper with data, or stage network-wide ransomware. Each hop here was a service that trusted the previous one by default, which is how a single misconfigured export turns into full internal compromise.
